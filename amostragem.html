@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Análise do IDH do Brasil - 2023</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        h1 {
+            color: #333;
+        }
+        p {
+            font-size: 16px;
+            line-height: 1.6;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        canvas {
+            margin-top: 20px;
+            max-width: 100%;
+        }
+    </style>
+</head>
+<body>
+    <h1>Análise do IDH do Brasil - 2023 (Amostragem Estratificada por Região)</h1>
+    
+    <div id="app" class="result">
+        <!-- Os resultados serão exibidos aqui pelo JavaScript -->
+    </div>
+
+    <canvas id="idhChart"></canvas>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        // Dados fornecidos: IDH por estado
+        const dadosPorEstado = {
+            'Distrito Federal': 0.814,
+            'São Paulo': 0.806,
+            'Santa Catarina': 0.792,
+            'Minas Gerais': 0.774,
+            'Rio Grande do Sul': 0.771,
+            'Espírito Santo': 0.771,
+            'Paraná': 0.769,
+            'Rio de Janeiro': 0.762,
+            'Mato Grosso do Sul': 0.742,
+            'Goiás': 0.737,
+            'Mato Grosso': 0.736,
+            'Ceará': 0.734,
+            'Tocantins': 0.731,
+            'Rio Grande do Norte': 0.728,
+            'Pernambuco': 0.719,
+            'Acre': 0.710,
+            'Sergipe': 0.702,
+            'Rondônia': 0.700,
+            'Amazonas': 0.700,
+            'Roraima': 0.699,
+            'Paraíba': 0.698,
+            'Bahia': 0.691,
+            'Pará': 0.690,
+            'Piauí': 0.690,
+            'Amapá': 0.688,
+            'Alagoas': 0.684,
+            'Maranhão': 0.676
+        };
+
+        // Divisão dos estados por região
+        const regioes = {
+            Norte: ['Acre', 'Amapá', 'Amazonas', 'Pará', 'Rondônia', 'Roraima', 'Tocantins'],
+            Nordeste: ['Bahia', 'Ceará', 'Maranhão', 'Paraíba', 'Pernambuco', 'Piauí', 'Rio Grande do Norte', 'Sergipe'],
+            CentroOeste: ['Goiás', 'Mato Grosso', 'Mato Grosso do Sul', 'Distrito Federal'],
+            Sudeste: ['Espírito Santo', 'Minas Gerais', 'Rio de Janeiro', 'São Paulo'],
+            Sul: ['Paraná', 'Rio Grande do Sul', 'Santa Catarina']
+        };
+
+        // Função para selecionar uma amostra aleatória de uma lista
+        function selecionarAmostra(lista, percentual) {
+            const quantidade = Math.round(lista.length * percentual);
+            const amostra = [];
+            const copias = [...lista];
+            for (let i = 0; i < quantidade; i++) {
+                const indice = Math.floor(Math.random() * copias.length);
+                amostra.push(copias.splice(indice, 1)[0]);
+            }
+            return amostra;
+        }
+
+        // Função para calcular a média de IDH por região
+        function calcularMediaPorRegiao(dados, regioes, percentualAmostra) {
+            const mediasPorRegiao = {};
+            for (const regiao in regioes) {
+                const estados = regioes[regiao];
+                const amostraEstados = selecionarAmostra(estados, percentualAmostra);
+                const idhs = amostraEstados.map(estado => dados[estado]);
+                const media = idhs.length ? (idhs.reduce((acc, idh) => acc + idh, 0) / idhs.length) : 0;
+                mediasPorRegiao[regiao] = media;
+            }
+            return mediasPorRegiao;
+        }
+
+        // Função para calcular a média global ponderada
+        function calcularMediaGlobal(mediasPorRegiao, regioes) {
+            let somaPonderada = 0;
+            let totalEstados = 0;
+
+            for (const regiao in regioes) {
+                const estados = regioes[regiao].length;
+                somaPonderada += mediasPorRegiao[regiao] * estados;
+                totalEstados += estados;
+            }
+
+            return somaPonderada / totalEstados;
+        }
+
+        // Percentual de amostragem (50%)
+        const percentualAmostra = 0.50;
+
+        // Calcular a média de IDH por região com amostragem estratificada
+        const mediasPorRegiao = calcularMediaPorRegiao(dadosPorEstado, regioes, percentualAmostra);
+
+        // Calcular a média global do IDH
+        const mediaGlobal = calcularMediaGlobal(mediasPorRegiao, regioes);
+
+        // Exibir os resultados
+        document.getElementById('app').innerHTML = `
+            <p><strong>Média Global do IDH:</strong> ${mediaGlobal.toFixed(3)}</p>
+            <p><strong>Médias por Região (Amostra Estratificada):</strong></p>
+            <ul>
+                ${Object.keys(mediasPorRegiao).map(regiao => `<li>${regiao}: ${mediasPorRegiao[regiao].toFixed(3)}</li>`).join('')}
+            </ul>
+        `;
+
+        // Preparar dados para o gráfico
+        const ctx = document.getElementById('idhChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: Object.keys(mediasPorRegiao),
+                datasets: [{
+                    label: 'Média do IDH por Região (Amostra Estratificada)',
+                    data: Object.values(mediasPorRegiao),
+                    backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                    borderColor: 'rgba(75, 192, 192, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Média do IDH'
+                        }
+                    }
+                }
+            }
+        });
+    </script>
+</body>
+</html>
